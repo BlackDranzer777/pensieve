@@ -1,0 +1,32 @@
+# Keep the build context small. Without this, the ~400 MB of node_modules and
+# the entire generated data/ tree are uploaded to the daemon on every build.
+.git
+.github
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/coverage
+**/htmlcov
+
+# Generated data layers are bind-mounted at runtime, never baked into images.
+data/bronze
+data/silver
+data/gold
+data/quarantine
+data/samples
+
+# Local-only files
+.env
+.env.local
+docs
+analytics/notebooks
+spark-warehouse
+metastore_db
+derby.log
+*.md
+!README.md

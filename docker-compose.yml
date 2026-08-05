@@ -1,0 +1,88 @@
+# Pensieve local stack.
+#
+#   docker compose up --build          # database + API + dashboard
+#   docker compose up postgres         # just the database, for `make dev`
+#   docker compose --profile spark run --rm spark-job   # PySpark Gold stage
+#
+# The `spark` profile is opt-in: its image carries a JDK and is much larger, so
+# it is not built unless the Gold stage is actually being run. This is also the
+# supported way to run Spark on a machine whose JDK is older than 17.
+
+name: pensieve
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pensieve-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pensieve}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pensieve_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-pensieve}
+      # Deterministic collation keeps ORDER BY results identical across hosts.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-pensieve} -d ${POSTGRES_DB:-pensieve}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+    container_name: pensieve-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pensieve}:${POSTGRES_PASSWORD:-pensieve_local_dev}@postgres:5432/${POSTGRES_DB:-pensieve}
+      API_ENV: ${API_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      PENSIEVE_DATA_ROOT: /app/data
+      # The API reads Gold Parquet directly via DuckDB for some analytics.
+    ports:
+      - '${API_PORT:-8000}:8000'
+    volumes:
+      # Bind-mounted so pipeline output written on the host is visible to the
+      # API without a rebuild.
+      - ./data:/app/data
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+    container_name: pensieve-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-5174}:80'
+
+  # PySpark Silver -> Gold. Opt-in via the `spark` profile.
+  spark-job:
+    profiles: ['spark']
+    build:
+      context: .
+      dockerfile: infrastructure/docker/spark.Dockerfile
+    container_name: pensieve-spark-job
+    environment:
+      PENSIEVE_DATA_ROOT: /app/data
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-2g}
+      SPARK_SHUFFLE_PARTITIONS: ${SPARK_SHUFFLE_PARTITIONS:-8}
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  postgres-data:
+    name: pensieve-postgres-data

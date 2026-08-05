@@ -1,0 +1,58 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Node ---
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+coverage/
+
+# --- Secrets / local config ---
+.env
+.env.local
+.env.*.local
+
+# --- Generated data layers (never commit; regenerate with `make seed && make pipeline`) ---
+data/bronze/**
+data/silver/**
+data/gold/**
+data/quarantine/**
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+!data/quarantine/.gitkeep
+data/samples/*.csv
+data/samples/*.json
+data/samples/*.jsonl
+data/samples/*.parquet
+!data/samples/.gitkeep
+
+# --- Local model cache (see HF_HOME in .env.example; keep OUT of OneDrive) ---
+.cache/
+hf-cache/
+
+# --- Spark local artifacts ---
+spark-warehouse/
+metastore_db/
+derby.log
+
+# --- Benchmarks / reports written by scripts ---
+docs/benchmarks.local.md
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

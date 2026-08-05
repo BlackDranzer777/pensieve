@@ -1,0 +1,20 @@
+# Normalise line endings so the repo is identical on Windows, macOS and Linux
+# and CI never sees a diff caused purely by CRLF.
+* text=auto eol=lf
+
+# Shell scripts and Docker entrypoints must never get CRLF — a CRLF shebang
+# produces the notoriously confusing "no such file or directory" error.
+*.sh text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+
+# PowerShell is happiest with CRLF on Windows.
+*.ps1 text eol=crlf
+
+# Binary
+*.parquet binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

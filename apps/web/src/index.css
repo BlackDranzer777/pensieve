@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ *
+ * Values are raw `R G B` triples (no `rgb()` wrapper) so Tailwind can compose
+ * them with an alpha channel via `rgb(var(--token) / <alpha-value>)`.
+ *
+ * The palette is intentionally restrained: one accent, a neutral ramp, and
+ * three semantic colours. Analytics interfaces earn their colour budget on the
+ * charts, not the chrome.
+ */
+@layer base {
+  :root {
+    --color-canvas: 248 250 252; /* slate-50  */
+    --color-surface: 255 255 255;
+    --color-surface-raised: 255 255 255;
+    --color-line: 226 232 240; /* slate-200 */
+    --color-line-strong: 203 213 225; /* slate-300 */
+    --color-ink: 15 23 42; /* slate-900 */
+    --color-ink-muted: 71 85 105; /* slate-600 */
+    --color-ink-subtle: 148 163 184; /* slate-400 */
+    --color-accent: 67 56 202; /* indigo-700 */
+    --color-accent-soft: 224 231 255; /* indigo-100 */
+    --color-positive: 15 118 110; /* teal-700   */
+    --color-caution: 180 83 9; /* amber-700  */
+    --color-negative: 190 18 60; /* rose-700   */
+    --color-info: 3 105 161; /* sky-700    */
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --color-canvas: 9 11 17;
+    --color-surface: 17 20 28;
+    --color-surface-raised: 24 28 38;
+    --color-line: 38 44 57;
+    --color-line-strong: 55 63 80;
+    --color-ink: 237 241 247;
+    --color-ink-muted: 158 168 186;
+    --color-ink-subtle: 110 120 138;
+    --color-accent: 129 140 248; /* indigo-400 — lifted for dark backgrounds */
+    --color-accent-soft: 39 41 82;
+    --color-positive: 45 212 191;
+    --color-caution: 251 191 36;
+    --color-negative: 251 113 133;
+    --color-info: 56 189 248;
+
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans text-sm;
+    font-feature-settings:
+      'cv02' 1,
+      'cv03' 1,
+      'cv04' 1;
+  }
+
+  /* Tabular numerals stop metrics from jittering as values change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A single, consistent focus ring for every interactive element. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-canvas rounded-sm;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-line-strong rounded-full border-2 border-solid border-transparent bg-clip-padding;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+}
+
+@layer utilities {
+  /* Respect users who have asked for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
