@@ -24,12 +24,16 @@ if str(REPO_ROOT) not in sys.path:  # pragma: no cover - direct execution conven
 
 from ulid import ULID  # noqa: E402
 
+from pipelines.aggregation.telemetry import (  # noqa: E402
+    record_pipeline_run,
+    record_quality_result,
+)
 from pipelines.common.config import get_pipeline_settings  # noqa: E402
 from pipelines.common.domain import PipelineStage, RunStatus  # noqa: E402
 from pipelines.common.logging import configure_logging, get_logger  # noqa: E402
 from pipelines.enrichment.service import enrich_batch  # noqa: E402
 from pipelines.ingestion.bronze import read_bronze, read_bronze_batch  # noqa: E402
-from pipelines.validation.service import validate_batch  # noqa: E402
+from pipelines.validation.service import ValidationResult, validate_batch  # noqa: E402
 
 log = get_logger(__name__)
 
@@ -175,6 +179,9 @@ def run_pipeline(
     run.status = RunStatus.PARTIAL if run.rows_quarantined else RunStatus.SUCCESS
     run.completed_at = datetime.now(UTC)
 
+    if write:
+        _record_telemetry(run, validation, settings.gold_path)
+
     log.info(
         "pipeline_complete",
         run_id=run.run_id,
@@ -187,6 +194,60 @@ def run_pipeline(
         duration_seconds=round(run.duration_seconds, 3),
     )
     return run
+
+
+def _record_telemetry(run: PipelineRun, validation: ValidationResult, gold_root: Path) -> None:
+    """Persist run and quality telemetry as Gold datasets.
+
+    Written here rather than derived in the Gold job because it describes the
+    *pipeline*, not the reviews — Silver has no record of how long a run took
+    or how many rows it rejected.
+    """
+    record_pipeline_run(
+        run_id=run.run_id,
+        batch_id=run.batch_id,
+        status=run.status.value,
+        started_at=run.started_at.isoformat(),
+        completed_at=(run.completed_at or run.started_at).isoformat(),
+        duration_seconds=run.duration_seconds,
+        rows_in=run.rows_in,
+        rows_out=run.rows_out,
+        rows_quarantined=run.rows_quarantined,
+        quality_score=run.quality_score,
+        stages=[
+            {
+                "stage": stage.stage.value,
+                "status": stage.status.value,
+                "started_at": stage.started_at.isoformat() if stage.started_at else None,
+                "completed_at": stage.completed_at.isoformat() if stage.completed_at else None,
+                "duration_seconds": round(stage.duration_seconds, 3),
+                "rows_in": stage.rows_in,
+                "rows_out": stage.rows_out,
+                "rows_per_second": round(stage.rows_per_second, 2),
+                "retry_count": 0,
+                "error_message": stage.error_message,
+            }
+            for stage in run.stages
+        ],
+        gold_root=gold_root,
+    )
+
+    quality = validation.quality
+    record_quality_result(
+        run_id=run.run_id,
+        batch_id=run.batch_id,
+        recorded_at=(run.completed_at or run.started_at).isoformat(),
+        total_records=quality.total_records,
+        valid_records=quality.valid_records,
+        invalid_records=quality.invalid_records,
+        duplicate_records=quality.duplicate_records,
+        missing_required_cells=quality.missing_required_cells,
+        unparseable_dates=quality.unparseable_dates,
+        score=quality.score,
+        score_version=quality.version,
+        failures_by_rule=quality.failures_by_rule,
+        gold_root=gold_root,
+    )
 
 
 def _print_report(run: PipelineRun) -> None:

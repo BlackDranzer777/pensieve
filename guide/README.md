@@ -37,6 +37,7 @@ it hands to the one after.
 | [phase2.md](phase2.md) | Synthetic data generation and ingestion into Bronze |
 | [phase3.md](phase3.md) | Validation, quarantine, cleaning, deduplication, quality score |
 | [phase4.md](phase4.md) | Language detection, sentiment, topic classification, Silver layer |
+| [phase5.md](phase5.md) | DuckDB/PySpark aggregation, the Gold layer, statistical anomaly detection |
 
 ---
 
@@ -83,7 +84,9 @@ Three containers, each an isolated mini-machine:
 | `pensieve-api` | `pensieve-api` (594 MB) | Python 3.12.13 + uvicorn + your code | 8000 → 8000 |
 | `pensieve-web` | `pensieve-web` (49.8 MB) | nginx 1.27.5 + compiled JS/CSS | 5174 → 80 |
 
-A fourth service, `spark-job`, exists but is behind an opt-in profile — see
+A fourth service, `spark-job`, exists but is behind an opt-in profile and is
+**not built by default** — the Gold stage runs on DuckDB in-process, with no
+JDK and no container. See
 [01-docker-setup.md](01-docker-setup.md#the-spark-profile).
 
 ---

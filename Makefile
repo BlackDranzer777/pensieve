@@ -9,7 +9,7 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help setup check dev dev-api dev-web test test-api test-web test-pipelines \
-        lint lint-py lint-web format seed pipeline gold gold-docker benchmark \
+        lint lint-py lint-web format seed pipeline gold gold-spark gold-docker benchmark \
         db-up db-down migrate clean docker-build docker-up docker-down
 
 # Windows venv layout differs from POSIX.
@@ -87,10 +87,14 @@ seed: ## Generate a synthetic dataset (override with ROWS=50000)
 pipeline: ## Run the full pipeline: Bronze -> Silver -> Gold
 	$(PY) -m pipelines.jobs.run_pipeline
 
-gold: ## Run only the PySpark Silver -> Gold stage (needs JDK 17+)
+gold: ## Run the Silver -> Gold stage on DuckDB (default; no JDK needed)
 	$(PY) -m pipelines.jobs.run_gold
 
-gold-docker: ## Run the Gold stage in Docker (use when the local JDK is < 17)
+gold-spark: ## Same stage on PySpark instead (needs JDK 17+ locally)
+	$(PY) -m pipelines.jobs.run_gold --engine spark
+
+gold-docker: ## Run the Spark Gold stage in Docker (builds a ~1.7 GB JDK image)
+	docker compose --profile spark build spark-job
 	docker compose --profile spark run --rm spark-job
 
 benchmark: ## Timed pipeline run; records measured results

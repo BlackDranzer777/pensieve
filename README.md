@@ -21,7 +21,7 @@ on local, open models and transparent rules.
 | 2 | Synthetic data generator + ingestion → Bronze | ✅ Complete |
 | 3 | Validation, quarantine, cleaning, dedup, quality score | ✅ Complete |
 | 4 | NLP enrichment (language, sentiment, topics) → Silver | ✅ Complete |
-| 5 | PySpark aggregation → Gold + anomaly detection | ⬜ Not started |
+| 5 | Aggregation → Gold + anomaly detection (DuckDB / PySpark) | ✅ Complete |
 | 6 | PostgreSQL schema, migrations, loader, REST API | ⬜ Not started |
 | 7 | React dashboard (6 pages) | ⬜ Not started |
 | 8 | Tests, CI, benchmarks, documentation | ⬜ Not started |
@@ -50,9 +50,18 @@ on local, open models and transparent rules.
   multilingual transformer scores sentiment at **30 reviews/sec on CPU**, and
   explainable keyword rules assign topics with the matched keywords stored
   alongside. A full run enriched 4,729 reviews into a partitioned Silver layer.
-- **324 tests pass** (11 API + 296 pipeline + 17 frontend), plus 2 real-model
-  tests run separately so CI never downloads 1.1 GB. `ruff`,
-  `mypy --strict` (54 files), `eslint --max-warnings 0` and `tsc` are clean.
+- **The Gold layer aggregates and detects anomalies statistically.** Eight
+  business-ready datasets built from one set of engine-agnostic SQL, runnable on
+  either DuckDB or PySpark — with no silent fallback, since every Gold row
+  records which engine produced it. Both were measured on the same 37,800 rows
+  and produce identical output: **DuckDB 1.29s, Spark 30.47s**, so DuckDB is the
+  default and Spark is opt-in. Anomaly detection found the deliberately planted
+  delivery-complaint spike at **4.5 standard deviations**, explaining itself in
+  a sentence anyone can check.
+- **358 tests pass** (11 API + 330 pipeline + 17 frontend), plus real-model and
+  Spark tests run separately so CI needs neither a 1.1 GB download nor a JVM.
+  `ruff`, `mypy --strict` (60 files), `eslint --max-warnings 0` and `tsc` are
+  clean.
 
 The five dashboard pages beyond the overview deliberately render an explicit
 "not built yet" panel. They show no numbers at all, because inventing metrics
@@ -92,7 +101,7 @@ flowchart TD
     D -->|valid| E["Cleaning & deduplication<br/>Unicode normalisation"]
     E --> F["Enrichment<br/>Lingua · sentiment model · topic rules"]
     F --> G[("Silver Parquet<br/>review-level, enriched")]
-    G --> H["PySpark aggregation"]
+    G --> H["Aggregation<br/>DuckDB by default · PySpark opt-in"]
     H --> I["Statistical anomaly detection<br/>rolling mean · z-score · % change"]
     I --> J[("Gold Parquet<br/>business-ready aggregates")]
     J --> K[("PostgreSQL<br/>app data + telemetry")]
@@ -116,7 +125,7 @@ Full detail: [docs/implementation-plan.md](docs/implementation-plan.md)
 |---|---|
 | Frontend | React, TypeScript, Vite, React Router, TanStack Query, TanStack Table, Recharts, Tailwind CSS, Zod, Vitest |
 | Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic, PostgreSQL 16 |
-| Data | PySpark 4, PyArrow, Parquet, DuckDB, Pandera, pandas (small files only) |
+| Data | DuckDB, PySpark 4 (opt-in), PyArrow, Parquet, Pandera, pandas (small files only) |
 | NLP | Lingua (language ID), multilingual transformer (sentiment), rule-based topics |
 | Platform | Docker, Docker Compose, Makefile, GitHub Actions, structured JSON logging |
 
@@ -128,9 +137,10 @@ Full detail: [docs/implementation-plan.md](docs/implementation-plan.md)
 
 - Python 3.12
 - Node.js 20+
-- Docker Desktop (for PostgreSQL; also runs the Spark stage)
-- **Java 17+ only if you want to run PySpark natively.** Otherwise the Spark
-  stage runs in Docker. Check with `python scripts/check_env.py`.
+- Docker Desktop (for PostgreSQL; also runs the optional Spark stage)
+- **No Java needed.** The Gold stage defaults to DuckDB. Java 17+ is required
+  only for the opt-in `--engine spark` path. Check with
+  `python scripts/check_env.py`.
 
 ### Local setup
 
@@ -169,7 +179,12 @@ docker compose up --build
 - PostgreSQL → `localhost:5433` (5433, not 5432, to avoid clashing with a
   native Postgres install)
 
-The PySpark stage is behind an opt-in profile because its image carries a JDK:
+The PySpark stage is behind an opt-in profile because its image carries a JDK
+and costs ~1.7 GB. Build it explicitly first — `run` never rebuilds:
+
+```bash
+docker compose --profile spark build spark-job
+```
 
 ```bash
 docker compose --profile spark run --rm spark-job
@@ -187,6 +202,8 @@ docker compose --profile spark run --rm spark-job
 | `make lint` | ruff, mypy, eslint, tsc, prettier |
 | `make seed` | Generate a synthetic dataset |
 | `make pipeline` | Run Bronze → Silver → Gold end to end |
+| `make gold` | Silver → Gold on DuckDB (default, no JDK) |
+| `make gold-spark` | The same stage on PySpark instead |
 | `make benchmark` | Timed pipeline run; writes measured results |
 | `make clean` | Remove generated data and caches |
 

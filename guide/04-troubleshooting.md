@@ -274,6 +274,35 @@ meant to *detect* the outage becomes the thing that hangs.
 
 ---
 
+## `docker compose run` ignores your Dockerfile changes
+
+**Symptom.** You edit a Dockerfile, run `docker compose run --rm <service>`,
+and the container behaves exactly as before. A file you just added a `COPY` for
+is still missing.
+
+**Cause.** `docker compose run` **does not rebuild.** It uses the existing
+image if one exists. Only `up` has `--build`; `run` silently reuses.
+
+This cost real time here: a `COPY analytics ./analytics` line was added to
+`spark.Dockerfile`, and three consecutive runs kept failing with
+`No SQL file for daily_brand_metrics` because none of them rebuilt the image.
+
+**Diagnosis.** Look inside the image rather than guessing:
+
+```bash
+docker compose --profile spark run --rm --entrypoint sh spark-job -c "ls /app"
+```
+
+**Fix.** Build explicitly first:
+
+```bash
+docker compose --profile spark build spark-job
+```
+
+Then run.
+
+---
+
 ## Changes to code are not showing up
 
 **Cause.** Images are built once and contain a **copy** of your source. Editing
@@ -300,6 +329,28 @@ Dashboard on **5173** with instant reload, versus 5174 for the Docker copy.
 
 The exception is `data/` — it is bind-mounted, so files written there on your
 host appear in the container immediately without any rebuild.
+
+---
+
+## `openjdk-17-jre-headless has no installation candidate`
+
+**Symptom.** The Spark image fails to build:
+
+```
+Package 'openjdk-17-jre-headless' has no installation candidate
+However the following packages replace it:
+  openjdk-21-jre openjdk-21-jdk-headless
+```
+
+**Cause.** `python:3.12-slim` now tracks Debian **trixie**, which dropped
+JDK 17 and ships JDK 21.
+
+**Fix.** Install 21. Spark 4 supports both:
+
+```dockerfile
+RUN apt-get install --no-install-recommends -y openjdk-21-jre-headless
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+```
 
 ---
 

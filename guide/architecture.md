@@ -35,7 +35,11 @@ flowchart TD
 
     SV --> SILVER[("SILVER<br/>31 cols · typed · 180 partitions<br/>4,729 rows — one per review")]
 
-    SILVER -.->|Phase 5| GOLD[("GOLD<br/>8 aggregate datasets")]
+    SILVER --> ENG["engines.py<br/><i>DuckDB (default) or Spark</i>"]
+    ENG --> SQL["analytics/sql/*.sql<br/><i>one definition, two engines</i>"]
+    SQL --> AN["anomalies.py<br/><i>rolling z-score</i>"]
+    AN --> GOLD[("GOLD<br/>8 datasets · 6,701 rows<br/>160 anomalies")]
+
     GOLD -.->|Phase 6| PG[("PostgreSQL")]
     PG -.->|Phase 6| API["FastAPI"]
     API -.->|Phase 7| UI["React dashboard"]
@@ -382,12 +386,90 @@ optimisations found while measuring:
 
 ---
 
+## Stage 5 — Gold
+
+### `engines.py` — two engines, one SQL definition
+
+| | |
+|---|---|
+| **Receives** | The Silver layer, registered as a `silver` view |
+| **Produces** | Eight Gold datasets in Parquet |
+
+```bash
+python -m pipelines.jobs.run_gold                  # DuckDB  ~50 MB, 1.29s   (default)
+python -m pipelines.jobs.run_gold --engine spark   # Spark   ~1-2 GB, 30.47s, needs Java 17+
+```
+
+The aggregation logic lives in `analytics/sql/*.sql`, not in engine-specific
+code, so the two paths cannot drift apart. **Every Gold row records an `engine`
+column** — there is no silent fallback, because a DuckDB run you believed was
+Spark would invalidate every benchmark number.
+
+DuckDB is the default because both engines produce byte-identical output and
+DuckDB does it 24× faster at this size. Spark stays supported and tested behind
+`--engine spark` and the `spark` Docker profile — it is the path that would not
+need rewriting if the data grew a thousandfold.
+
+A preflight check runs first when Spark is requested:
+
+```
+Cannot start Spark on this machine:
+  - Java 8 detected; PySpark 4 requires Java 17+
+```
+
+### The eight datasets
+
+| Dataset | Grain | Rows |
+|---|---|---|
+| `daily_brand_metrics` | date × brand | 450 |
+| `daily_topic_metrics` | date × brand × topic | 4,769 |
+| `country_metrics` | date × country | 630 |
+| `language_distribution` | date × language | 636 |
+| `sentiment_trends` | date × brand + rolling baselines | 450 |
+| `anomalies` | detection events | 160 |
+| `data_quality_metrics` | batch × rule | 5 |
+| `pipeline_run_metrics` | run | 1 |
+
+**Every query filters `is_duplicate_of IS NULL`.** Counting a duplicate twice
+would inflate volume and skew sentiment. A test asserts this on all five
+queries.
+
+### `anomalies.py` — statistical, not magical
+
+Four gates, all of which must pass:
+
+```
+volume >= 10 reviews        two negatives out of three means nothing
+|z-score| >= 2.0            unusual against a 7-day trailing baseline
+|change| >= 25%             significant but irrelevant is still irrelevant
+direction matches           negativity falling is good news
+```
+
+The baseline is `.rolling(7).mean().shift(1)` — that `.shift(1)` excludes the
+day being tested, because including it drags the mean toward the value under
+test and hides the spike.
+
+Real output:
+
+> *Nimbus Drinks: daily review volume rose from 4.86 to 16.00 (+229.4%), which
+> is 4.5 standard deviations from the 7-day baseline. Based on 16 reviews on
+> the day.*
+
+That is the signal the generator planted, found without being told it exists.
+
+### `telemetry.py` — append-only run history
+
+`data_quality_metrics` and `pipeline_run_metrics` describe **the pipeline**,
+not the reviews, so Silver cannot produce them. The runner appends as it goes,
+and nothing is ever rewritten — *"was this batch worse than last week's?"* is
+unanswerable if last week's row was overwritten.
+
+---
+
 ## Not yet built
 
 | Stage | Script | Phase |
 |---|---|---|
-| Gold aggregation | `pipelines/aggregation/` | 5 |
-| Anomaly detection | `pipelines/aggregation/` | 5 |
 | Gold → PostgreSQL loader | `apps/api/app/services/` | 6 |
 | Repository layer | `apps/api/app/repositories/` | 6 |
 | 13 remaining endpoints | `apps/api/app/api/routes/` | 6 |

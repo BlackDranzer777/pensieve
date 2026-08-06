@@ -52,9 +52,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Generate synthetic reviews and ingest them into the Bronze layer.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--rows", type=int, default=10_000, help="clean rows to generate")
+    # Defaults chosen for *density*, not just row count. Anomaly detection
+    # needs enough reviews per (brand, topic, day) cell to be statistically
+    # meaningful — its MIN_VOLUME guard correctly rejects anything thinner.
+    #
+    # 10,000 rows over 180 days gives ~1 review per brand-topic-day, and the
+    # detector finds nothing at all. 40,000 over 90 days gives ~8, which is
+    # enough for topic-level trends to be real rather than noise.
+    parser.add_argument("--rows", type=int, default=40_000, help="clean rows to generate")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="random seed")
-    parser.add_argument("--days", type=int, default=180, help="days of history to span")
+    parser.add_argument("--days", type=int, default=90, help="days of history to span")
     parser.add_argument(
         "--format",
         choices=["csv", "json", "jsonl", "parquet"],

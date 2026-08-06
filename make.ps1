@@ -67,8 +67,9 @@ function Show-Help {
         'format'         = 'Auto-format Python and TypeScript'
         'seed'           = 'Generate a synthetic dataset (-Rows 50000)'
         'pipeline'       = 'Run the full pipeline: Bronze -> Silver -> Gold'
-        'gold'           = 'Run only the PySpark Silver -> Gold stage (needs JDK 17+)'
-        'gold-docker'    = 'Run the Gold stage in Docker (use when the local JDK is < 17)'
+        'gold'           = 'Run the Silver -> Gold stage on DuckDB (default, no JDK)'
+        'gold-spark'     = 'Same stage on PySpark instead (needs JDK 17+ locally)'
+        'gold-docker'    = 'Run the Spark Gold stage in Docker (~1.7 GB JDK image)'
         'benchmark'      = 'Timed pipeline run; records measured results'
         'db-up'          = 'Start PostgreSQL only'
         'db-down'        = 'Stop PostgreSQL'
@@ -146,7 +147,11 @@ try {
         'seed' { Assert-Venv; & $Py scripts\seed_demo_data.py --rows $Rows }
         'pipeline' { Assert-Venv; & $Py -m pipelines.jobs.run_pipeline }
         'gold' { Assert-Venv; & $Py -m pipelines.jobs.run_gold }
-        'gold-docker' { & docker compose --profile spark run --rm spark-job }
+        'gold-spark' { Assert-Venv; & $Py -m pipelines.jobs.run_gold --engine spark }
+        'gold-docker' {
+            & docker compose --profile spark build spark-job
+            if ($?) { & docker compose --profile spark run --rm spark-job }
+        }
         'benchmark' { Assert-Venv; & $Py scripts\benchmark.py }
 
         'db-up' { Invoke-Step 'Starting PostgreSQL' { & docker compose up -d postgres } }

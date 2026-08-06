@@ -123,6 +123,11 @@ ignore = [
 # joiners. Flagging them as "ambiguous" is the rule misreading the intent.
 "pipelines/transformation/text.py" = ["RUF001", "RUF002", "RUF003"]
 "pipelines/tests/test_generator.py" = ["RUF001"]
+# S608 flags f-string SQL. Here the interpolated values are a filesystem path
+# built from settings and a module constant view name — never user input — and
+# SQL has no parameter binding for table or path positions, so there is no
+# safer form available. Justified inline at the call site too.
+"pipelines/aggregation/engines.py" = ["S608"]
 "pipelines/tests/test_text.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.isort]
