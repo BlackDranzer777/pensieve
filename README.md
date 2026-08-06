@@ -18,8 +18,8 @@ on local, open models and transparent rules.
 |---|---|---|
 | 0 | Plan, schemas, model selection, risk analysis | ✅ Complete |
 | 1 | Foundation: repo, tooling, Docker, Postgres, API health, web shell | ✅ Complete |
-| 2 | Synthetic data generator + ingestion → Bronze | ⬜ Not started |
-| 3 | Validation, quarantine, cleaning, dedup, quality score | ⬜ Not started |
+| 2 | Synthetic data generator + ingestion → Bronze | ✅ Complete |
+| 3 | Validation, quarantine, cleaning, dedup, quality score | ✅ Complete |
 | 4 | NLP enrichment (language, sentiment, topics) → Silver | ⬜ Not started |
 | 5 | PySpark aggregation → Gold + anomaly detection | ⬜ Not started |
 | 6 | PostgreSQL schema, migrations, loader, REST API | ⬜ Not started |
@@ -37,8 +37,16 @@ on local, open models and transparent rules.
   Zod-validated responses — including loading, error and retry states.
 - Six routes, responsive layout (sidebar collapses to a drawer below `lg`),
   light/dark theme persisted to `localStorage`, and a keyboard skip-link.
-- **67 tests pass** (11 API + 39 pipeline + 17 frontend). `ruff`,
-  `mypy --strict` (29 files), `eslint --max-warnings 0` and `tsc` are clean.
+- **The ingestion pipeline runs end to end.** `make seed` generates a seeded
+  multilingual dataset with deliberately broken records, ingests it into
+  partitioned Bronze Parquet at **52,541 rows/sec**, and re-running it is a
+  verified no-op because batches are identified by content checksum.
+- **Validation, quarantine and quality scoring work on real data.** A measured
+  5,150-row batch produced 4,729 valid records and 421 quarantined ones across
+  5 distinct rules, with a quality score of **95.89/100** that shows its own
+  arithmetic. Rejected records keep their original values and a reason.
+- **256 tests pass** (11 API + 228 pipeline + 17 frontend). `ruff`,
+  `mypy --strict` (46 files), `eslint --max-warnings 0` and `tsc` are clean.
 
 The five dashboard pages beyond the overview deliberately render an explicit
 "not built yet" panel. They show no numbers at all, because inventing metrics

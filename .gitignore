@@ -50,6 +50,13 @@ derby.log
 # --- Benchmarks / reports written by scripts ---
 docs/benchmarks.local.md
 
+# --- Reference material (local working notes, not part of the deliverable) ---
+diagrams/
+
+# Verification output and scratch work. The guide documents themselves are
+# tracked; only the raw command logs behind them are not.
+guide/scratch/
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db

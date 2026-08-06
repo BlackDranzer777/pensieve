@@ -107,6 +107,17 @@ ignore = [
 # Scripts are CLI entry points; printing to stdout is their job.
 "scripts/**" = ["T20"]
 "pipelines/jobs/**" = ["T20"]
+# These two files contain non-ASCII text on purpose: real multilingual review
+# templates, and deliberately malformed Unicode used to generate dirty records.
+# RUF001-003 flag exactly the characters these modules exist to produce.
+"pipelines/ingestion/templates.py" = ["RUF001", "RUF002", "RUF003"]
+"pipelines/ingestion/generator.py" = ["RUF001", "RUF002", "RUF003"]
+# text.py's regex classes and docstrings must contain the exact characters it
+# exists to normalise away: full-width forms, non-breaking spaces, zero-width
+# joiners. Flagging them as "ambiguous" is the rule misreading the intent.
+"pipelines/transformation/text.py" = ["RUF001", "RUF002", "RUF003"]
+"pipelines/tests/test_generator.py" = ["RUF001"]
+"pipelines/tests/test_text.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app", "pipelines"]
