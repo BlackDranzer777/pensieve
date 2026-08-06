@@ -18,8 +18,18 @@ FIXED_END_DATE = datetime(2026, 6, 1, tzinfo=UTC)
 
 @pytest.fixture
 def settings(tmp_path: Path) -> PipelineSettings:
-    """Settings pointing at an isolated temporary data root."""
-    configured = PipelineSettings(PENSIEVE_DATA_ROOT=str(tmp_path))
+    """Settings pointing at an isolated temporary data root.
+
+    The sentiment backend is pinned to `lexicon` rather than inherited from
+    the developer's `.env`. Without this the suite silently loads the real
+    1.1 GB transformer — it took 52 seconds and produced a confusing failure
+    where a test asserting `lexicon-v1` saw a Cardiff model version. Tests
+    must not depend on local configuration.
+    """
+    configured = PipelineSettings(
+        PENSIEVE_DATA_ROOT=str(tmp_path),
+        PENSIEVE_SENTIMENT_BACKEND="lexicon",
+    )
     configured.ensure_directories()
     return configured
 

@@ -12,6 +12,12 @@ shown are the real outputs from this machine.
 
 ## The documents
 
+### Start here
+
+| Document | What it covers |
+|---|---|
+| [architecture.md](architecture.md) | **What every script does to the data**, stage by stage, with diagrams and measured numbers. The map of the whole pipeline. |
+
 ### Docker
 
 | Document | What it covers |
@@ -30,6 +36,7 @@ it hands to the one after.
 |---|---|
 | [phase2.md](phase2.md) | Synthetic data generation and ingestion into Bronze |
 | [phase3.md](phase3.md) | Validation, quarantine, cleaning, deduplication, quality score |
+| [phase4.md](phase4.md) | Language detection, sentiment, topic classification, Silver layer |
 
 ---
 

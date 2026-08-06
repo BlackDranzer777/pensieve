@@ -8,6 +8,7 @@ out of the box after `make setup`.
 from __future__ import annotations
 
 import functools
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -59,6 +60,9 @@ class PipelineSettings(BaseSettings):
     language_min_confidence: float = Field(
         default=0.65, ge=0.0, le=1.0, alias="PENSIEVE_LANGUAGE_MIN_CONFIDENCE"
     )
+    #: Where Hugging Face caches the ~1.1 GB model. Empty means use the
+    #: library's own default (`~/.cache/huggingface`).
+    hf_home: str = Field(default="", alias="HF_HOME")
 
     # --- Spark ------------------------------------------------------------
     spark_master: str = Field(default="local[*]", alias="SPARK_MASTER")
@@ -95,6 +99,24 @@ class PipelineSettings(BaseSettings):
     @property
     def samples_path(self) -> Path:
         return self.data_root / "samples"
+
+    def apply_hf_home(self) -> None:
+        """Export `HF_HOME` into the OS environment.
+
+        Reading it into this settings object is not enough: `transformers`
+        and `huggingface_hub` read `os.environ` directly, and a value that
+        only lives in `.env` is silently ignored. That is how a 1.1 GB model
+        ends up somewhere other than the directory you configured — with no
+        error to tell you.
+
+        Must run *before* transformers is imported, which is why the
+        sentiment backend calls it at load time rather than at module import.
+        """
+        if not self.hf_home:
+            return
+        target = Path(self.hf_home).expanduser()
+        target.mkdir(parents=True, exist_ok=True)
+        os.environ["HF_HOME"] = str(target)
 
     def ensure_directories(self) -> None:
         """Create every data directory that the pipeline writes to."""

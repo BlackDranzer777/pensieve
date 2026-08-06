@@ -20,7 +20,7 @@ on local, open models and transparent rules.
 | 1 | Foundation: repo, tooling, Docker, Postgres, API health, web shell | ✅ Complete |
 | 2 | Synthetic data generator + ingestion → Bronze | ✅ Complete |
 | 3 | Validation, quarantine, cleaning, dedup, quality score | ✅ Complete |
-| 4 | NLP enrichment (language, sentiment, topics) → Silver | ⬜ Not started |
+| 4 | NLP enrichment (language, sentiment, topics) → Silver | ✅ Complete |
 | 5 | PySpark aggregation → Gold + anomaly detection | ⬜ Not started |
 | 6 | PostgreSQL schema, migrations, loader, REST API | ⬜ Not started |
 | 7 | React dashboard (6 pages) | ⬜ Not started |
@@ -45,8 +45,14 @@ on local, open models and transparent rules.
   5,150-row batch produced 4,729 valid records and 421 quarantined ones across
   5 distinct rules, with a quality score of **95.89/100** that shows its own
   arithmetic. Rejected records keep their original values and a reason.
-- **256 tests pass** (11 API + 228 pipeline + 17 frontend). `ruff`,
-  `mypy --strict` (46 files), `eslint --max-warnings 0` and `tsc` are clean.
+- **The NLP layer runs locally with no API and no LLM.** Lingua detects six
+  languages (plus honest `unsupported` and `unknown` states), a local
+  multilingual transformer scores sentiment at **30 reviews/sec on CPU**, and
+  explainable keyword rules assign topics with the matched keywords stored
+  alongside. A full run enriched 4,729 reviews into a partitioned Silver layer.
+- **324 tests pass** (11 API + 296 pipeline + 17 frontend), plus 2 real-model
+  tests run separately so CI never downloads 1.1 GB. `ruff`,
+  `mypy --strict` (54 files), `eslint --max-warnings 0` and `tsc` are clean.
 
 The five dashboard pages beyond the overview deliberately render an explicit
 "not built yet" panel. They show no numbers at all, because inventing metrics

@@ -46,6 +46,12 @@ pipelines = [
 nlp = [
   "transformers>=4.41",
   "torch>=2.3",
+  # XLM-RoBERTa's tokenizer is SentencePiece-based, and converting it to the
+  # fast tokenizer format needs protobuf as well. Missing either one fails
+  # deep inside a traceback that mentions tiktoken, which is a misleading
+  # place to start debugging.
+  "sentencepiece>=0.2",
+  "protobuf>=4.25",
 ]
 # PySpark 4.x requires Java 17+. Installed separately so the rest of the
 # project stays usable on machines without a modern JDK.
