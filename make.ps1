@@ -70,6 +70,9 @@ function Show-Help {
         'gold'           = 'Run the Silver -> Gold stage on DuckDB (default, no JDK)'
         'gold-spark'     = 'Same stage on PySpark instead (needs JDK 17+ locally)'
         'gold-docker'    = 'Run the Spark Gold stage in Docker (~1.7 GB JDK image)'
+        'load'           = 'Load Silver + Gold Parquet into PostgreSQL'
+        'load-counts'    = 'Report row counts per table without loading'
+        'inspect'        = 'Print what is on disk in each pipeline layer'
         'benchmark'      = 'Timed pipeline run; records measured results'
         'db-up'          = 'Start PostgreSQL only'
         'db-down'        = 'Stop PostgreSQL'
@@ -152,6 +155,9 @@ try {
             & docker compose --profile spark build spark-job
             if ($?) { & docker compose --profile spark run --rm spark-job }
         }
+        'load' { Assert-Venv; & $Py -m pipelines.jobs.load_postgres }
+        'load-counts' { Assert-Venv; & $Py -m pipelines.jobs.load_postgres --counts }
+        'inspect' { Assert-Venv; & $Py scripts\inspect_data.py }
         'benchmark' { Assert-Venv; & $Py scripts\benchmark.py }
 
         'db-up' { Invoke-Step 'Starting PostgreSQL' { & docker compose up -d postgres } }

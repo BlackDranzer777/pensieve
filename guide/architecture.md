@@ -466,13 +466,74 @@ unanswerable if last week's row was overwritten.
 
 ---
 
+## Stage 6 — PostgreSQL
+
+### `postgres_loader.py` — Parquet into the serving layer
+
+| | |
+|---|---|
+| **Receives** | The Silver layer and all eight Gold datasets |
+| **Produces** | 90,300 rows across 13 PostgreSQL tables |
+| **Duration** | **9.72s** |
+
+```mermaid
+flowchart LR
+    SILVER[("Silver<br/>37,800 rows")] --> LOAD["postgres_loader.py"]
+    GOLD[("Gold<br/>8 datasets")] --> LOAD
+    LOAD -->|COPY, one transaction| PG[("PostgreSQL<br/>13 tables")]
+    PG --> REPO["Repository layer"]
+    REPO --> SVC["Service layer"]
+    SVC --> ROUTES["14 endpoints"]
+    ROUTES --> WEB["React dashboard"]
+
+    style PG fill:#2d5a7a,color:#fff
+    style SILVER fill:#5a6570,color:#fff
+    style GOLD fill:#8a6d1f,color:#fff
+```
+
+**The load is a full replace, in one transaction.** Parquet is the source of
+truth; Postgres is a derived copy that is safe to truncate and rebuild. A
+failure halfway therefore leaves yesterday's data serving traffic rather than
+an empty dashboard.
+
+Ids are derived from source keys with `uuid5`, so a reload produces the *same*
+primary keys — bookmarked `/reviews/<id>` links keep working.
+
+### What each layer contributes
+
+| Table group | From | Rows |
+|---|---|---|
+| `brands`, `reviews`, `review_topics` | Silver | 83,195 |
+| six aggregate tables | Gold | 7,095 |
+| `pipeline_runs`, `pipeline_stage_runs`, `data_quality_results` | Gold telemetry | 9 |
+| `review_date_bounds` | computed at load | 1 |
+
+**Bronze and Quarantine never reach Postgres.** Nothing serves them to a user.
+
+### Why COPY, measured
+
+| Path | Duration | Rate |
+|---|---|---|
+| SQLAlchemy `executemany` | 424s | ~210 rows/s |
+| PostgreSQL `COPY` | **9.72s** | **~9,300 rows/s** |
+
+44× faster. Every row on the ORM path costs a statement parse and a round trip.
+
+### The numbers reconcile
+
+```
+reviews in Postgres         37,800
+non-duplicate               21,933
+sum(daily_brand_metrics)    21,933   <- Gold agrees
+GET /brands total           21,933   <- and so does the API
+```
+
+---
+
 ## Not yet built
 
 | Stage | Script | Phase |
 |---|---|---|
-| Gold → PostgreSQL loader | `apps/api/app/services/` | 6 |
-| Repository layer | `apps/api/app/repositories/` | 6 |
-| 13 remaining endpoints | `apps/api/app/api/routes/` | 6 |
 | 5 remaining dashboard pages | `apps/web/src/features/` | 7 |
 
 ---
@@ -491,3 +552,6 @@ unanswerable if last week's row was overwritten.
 | `pipelines/enrichment/sentiment.py` | the backend protocol, `batch_size` |
 | `pipelines/enrichment/topics.py` | `_compiled_patterns` |
 | `pipelines/jobs/run_pipeline.py` | stage telemetry |
+| `pipelines/loading/postgres_loader.py` | `_insert_chunked`, `_coerce_row`, `stable_id` |
+| `apps/api/app/models/core.py` | the indexes and why each one exists |
+| `apps/api/app/repositories/reviews.py` | `SORTABLE`, the `EXISTS` topic filter |

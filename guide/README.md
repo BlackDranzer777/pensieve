@@ -38,6 +38,7 @@ it hands to the one after.
 | [phase3.md](phase3.md) | Validation, quarantine, cleaning, deduplication, quality score |
 | [phase4.md](phase4.md) | Language detection, sentiment, topic classification, Silver layer |
 | [phase5.md](phase5.md) | DuckDB/PySpark aggregation, the Gold layer, statistical anomaly detection |
+| [phase6.md](phase6.md) | PostgreSQL schema, migrations, the loader and the REST API |
 
 ---
 

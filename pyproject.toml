@@ -27,6 +27,10 @@ api = [
   "sqlalchemy>=2.0.30",
   "alembic>=1.13",
   "psycopg[binary]>=3.1",
+  # Required by the dataset-upload endpoint. FastAPI does not pull it in, and
+  # its absence fails at *import* time, not on first upload — the whole app
+  # refuses to start.
+  "python-multipart>=0.0.9",
 ]
 # What the API needs to read Parquet and answer analytical queries. Kept
 # separate from `pipelines` because the serving image has no business carrying

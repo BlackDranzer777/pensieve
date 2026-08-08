@@ -9,7 +9,8 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help setup check dev dev-api dev-web test test-api test-web test-pipelines \
-        lint lint-py lint-web format seed pipeline gold gold-spark gold-docker benchmark \
+        lint lint-py lint-web format seed pipeline gold gold-spark gold-docker \
+        load load-counts inspect benchmark \
         db-up db-down migrate clean docker-build docker-up docker-down
 
 # Windows venv layout differs from POSIX.
@@ -96,6 +97,15 @@ gold-spark: ## Same stage on PySpark instead (needs JDK 17+ locally)
 gold-docker: ## Run the Spark Gold stage in Docker (builds a ~1.7 GB JDK image)
 	docker compose --profile spark build spark-job
 	docker compose --profile spark run --rm spark-job
+
+load: ## Load Silver + Gold Parquet into PostgreSQL (needs migrations applied)
+	$(PY) -m pipelines.jobs.load_postgres
+
+load-counts: ## Report row counts per table without loading
+	$(PY) -m pipelines.jobs.load_postgres --counts
+
+inspect: ## Print what is on disk in each pipeline layer
+	$(PY) scripts/inspect_data.py
 
 benchmark: ## Timed pipeline run; records measured results
 	$(PY) scripts/benchmark.py

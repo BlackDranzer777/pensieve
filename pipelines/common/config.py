@@ -100,6 +100,17 @@ class PipelineSettings(BaseSettings):
     def samples_path(self) -> Path:
         return self.data_root / "samples"
 
+    @property
+    def repo_root(self) -> Path:
+        """The repository root.
+
+        Needed as the working directory when a pipeline job is launched as a
+        subprocess: `python -m pipelines.jobs...` only resolves if the process
+        starts where the packages live, and the API's own working directory is
+        `apps/api` under Docker.
+        """
+        return _repo_root()
+
     def apply_hf_home(self) -> None:
         """Export `HF_HOME` into the OS environment.
 

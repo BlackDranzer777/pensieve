@@ -103,6 +103,27 @@ ANOMALY_RULES: Final[tuple[AnomalyRule, ...]] = (
 )
 
 
+def _anomaly_id(
+    metric: str,
+    entity: str,
+    detected_date: object,
+    topic: str | None,
+    country: str | None,
+) -> str:
+    """Build an id that is unique at the grain the dataset is actually stored at.
+
+    A brand-level detection and a topic-level detection can share a metric, a
+    brand and a day; only the topic distinguishes them. `-` marks a dimension
+    that does not apply, so the two cases stay distinguishable rather than both
+    collapsing to an empty string.
+
+    Kept human-readable on purpose — a hash would be unique too, but an
+    operator reading a log line could not tell what it referred to.
+    """
+    date_part = str(detected_date)[:10]
+    return f"{metric}:{entity}:{date_part}:{topic or '-'}:{country or '-'}"
+
+
 def _severity_for(z_score: float) -> Severity:
     """Map a z-score to a severity band."""
     magnitude = abs(z_score)
@@ -221,8 +242,19 @@ def detect_anomalies(
                 entity_name = str(entity)
                 results.append(
                     {
-                        "anomaly_id": (
-                            f"{rule.metric}:{entity_name}:{series.iloc[index][date_column]}"
+                        # Every dimension that varies within this dataset has
+                        # to be in the id, or it does not identify a row.
+                        # `topic` and `country` were originally omitted, which
+                        # gave a brand-level anomaly and a topic-level one on
+                        # the same brand, metric and day the same id — 160 rows
+                        # sharing 146 ids. Nothing noticed until a loader used
+                        # the id as a primary key and 14 anomalies collided.
+                        "anomaly_id": _anomaly_id(
+                            rule.metric,
+                            entity_name,
+                            series.iloc[index][date_column],
+                            topic,
+                            country,
                         ),
                         "detected_date": series.iloc[index][date_column],
                         "brand": entity_name,

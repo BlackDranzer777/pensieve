@@ -329,38 +329,6 @@ class TestTelemetry:
 
 
 class TestBuildGold:
-    @pytest.fixture
-    def silver_data(self, settings: PipelineSettings) -> PipelineSettings:
-        """A small but dense Silver layer, written through the real pipeline."""
-        rows = 400
-        dates = pd.date_range("2026-03-01", periods=20)
-        frame = pd.DataFrame(
-            {
-                "review_id": [f"r{i}" for i in range(rows)],
-                "brand": ["Aurora Foods", "Nimbus Drinks"] * (rows // 2),
-                "product": ["Oat Crunch Cereal"] * rows,
-                "country": ["GB", "DE"] * (rows // 2),
-                "source": ["web"] * rows,
-                "rating": pd.array([5, 1] * (rows // 2), dtype="Int8"),
-                "created_at": [dates[i % 20] for i in range(rows)],
-                "text": [
-                    "The delivery was incredibly fast and the packaging was perfect!"
-                    if i % 2
-                    else "The courier lost my parcel and the price is far too expensive."
-                    for i in range(rows)
-                ],
-                "normalized_text": [
-                    "The delivery was incredibly fast and the packaging was perfect!"
-                    if i % 2
-                    else "The courier lost my parcel and the price is far too expensive."
-                    for i in range(rows)
-                ],
-                "ingestion_batch_id": ["batch-1"] * rows,
-            }
-        )
-        enrich_batch(frame, settings=settings)
-        return settings
-
     def test_builds_every_dataset(self, silver_data: PipelineSettings) -> None:
         result = build_gold(engine_name="duckdb", settings=silver_data)
 
@@ -409,6 +377,21 @@ class TestBuildGold:
     def test_empty_silver_fails_with_a_useful_message(self, settings: PipelineSettings) -> None:
         with pytest.raises(FileNotFoundError, match="run_pipeline"):
             build_gold(engine_name="duckdb", settings=settings)
+
+    def test_anomaly_ids_are_unique(self, silver_data: PipelineSettings) -> None:
+        """Regression: `anomaly_id` must identify exactly one row.
+
+        It originally omitted `topic` and `country`, so a brand-level anomaly
+        and a topic-level anomaly on the same brand, metric and day shared an
+        id — 160 rows across 146 ids on the real dataset. Nothing surfaced it
+        until the Postgres loader used the id as a primary key and 14 rows
+        collided.
+        """
+        build_gold(engine_name="duckdb", settings=silver_data)
+        anomalies = read_gold_dataset(silver_data.gold_path, "anomalies")
+
+        duplicated = anomalies["anomaly_id"].duplicated().sum()
+        assert duplicated == 0, f"{duplicated} anomaly ids are not unique"
 
 
 @pytest.mark.spark

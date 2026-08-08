@@ -22,7 +22,7 @@ on local, open models and transparent rules.
 | 3 | Validation, quarantine, cleaning, dedup, quality score | ✅ Complete |
 | 4 | NLP enrichment (language, sentiment, topics) → Silver | ✅ Complete |
 | 5 | Aggregation → Gold + anomaly detection (DuckDB / PySpark) | ✅ Complete |
-| 6 | PostgreSQL schema, migrations, loader, REST API | ⬜ Not started |
+| 6 | PostgreSQL schema, migrations, loader, REST API | ✅ Complete |
 | 7 | React dashboard (6 pages) | ⬜ Not started |
 | 8 | Tests, CI, benchmarks, documentation | ⬜ Not started |
 
@@ -58,9 +58,17 @@ on local, open models and transparent rules.
   default and Spark is opt-in. Anomaly detection found the deliberately planted
   delivery-complaint spike at **4.5 standard deviations**, explaining itself in
   a sentence anyone can check.
-- **358 tests pass** (11 API + 330 pipeline + 17 frontend), plus real-model and
+- **The API serves that data from PostgreSQL.** 13 tables, one Alembic
+  migration, and a loader that moves **90,300 rows in 9.7 seconds** using
+  PostgreSQL `COPY` — 44× faster than the `executemany` version it replaced,
+  which took 424s. Fourteen endpoints cover every dashboard page;
+  `GET /overview` returns in **135 ms**. Loading twice produces identical row
+  counts, and the totals reconcile exactly: 21,933 non-duplicate reviews in
+  Postgres, in Gold, and in the API response.
+- **451 tests pass** (74 API + 360 pipeline + 17 frontend), plus real-model and
   Spark tests run separately so CI needs neither a 1.1 GB download nor a JVM.
-  `ruff`, `mypy --strict` (60 files), `eslint --max-warnings 0` and `tsc` are
+  API tests run against in-memory SQLite, so CI needs no database service.
+  `ruff`, `mypy --strict` (81 files), `eslint --max-warnings 0` and `tsc` are
   clean.
 
 The five dashboard pages beyond the overview deliberately render an explicit
@@ -104,9 +112,10 @@ flowchart TD
     G --> H["Aggregation<br/>DuckDB by default · PySpark opt-in"]
     H --> I["Statistical anomaly detection<br/>rolling mean · z-score · % change"]
     I --> J[("Gold Parquet<br/>business-ready aggregates")]
-    J --> K[("PostgreSQL<br/>app data + telemetry")]
+    G --> K
+    J --> K[("PostgreSQL<br/>13 tables, indexed")]
     J -.->|zero-copy SQL| L[("DuckDB<br/>ad-hoc analytics")]
-    K --> M["FastAPI"]
+    K --> M["FastAPI<br/>14 endpoints"]
     M --> N["React dashboard"]
 
     style C fill:#7c5c1e,color:#fff
@@ -204,6 +213,9 @@ docker compose --profile spark run --rm spark-job
 | `make pipeline` | Run Bronze → Silver → Gold end to end |
 | `make gold` | Silver → Gold on DuckDB (default, no JDK) |
 | `make gold-spark` | The same stage on PySpark instead |
+| `make migrate` | Apply the Alembic migrations |
+| `make load` | Load Silver + Gold Parquet into PostgreSQL |
+| `make inspect` | Print what is on disk in each pipeline layer |
 | `make benchmark` | Timed pipeline run; writes measured results |
 | `make clean` | Remove generated data and caches |
 
