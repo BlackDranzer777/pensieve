@@ -23,7 +23,7 @@ on local, open models and transparent rules.
 | 4 | NLP enrichment (language, sentiment, topics) → Silver | ✅ Complete |
 | 5 | Aggregation → Gold + anomaly detection (DuckDB / PySpark) | ✅ Complete |
 | 6 | PostgreSQL schema, migrations, loader, REST API | ✅ Complete |
-| 7 | React dashboard (6 pages) | ⬜ Not started |
+| 7 | React dashboard (6 pages) | 🟡 Written, **not yet verified** |
 | 8 | Tests, CI, benchmarks, documentation | ⬜ Not started |
 
 **What works today (verified by running it, not by assumption):**
@@ -71,10 +71,23 @@ on local, open models and transparent rules.
   `ruff`, `mypy --strict` (81 files), `eslint --max-warnings 0` and `tsc` are
   clean.
 
-The five dashboard pages beyond the overview deliberately render an explicit
-"not built yet" panel. They show no numbers at all, because inventing metrics
-to make a screenshot look finished would misrepresent what the platform has
-measured.
+**Phase 7 is written but unverified.** All six dashboard pages now consume the
+real API instead of rendering a placeholder — but the code has not been
+compiled, linted, tested or loaded in a browser, because the machine it was
+written on did not have the memory free to run the stack. Until it has been,
+this README makes no claim that the dashboard works. To check it yourself:
+
+```bash
+cd apps/web && npm run typecheck && npm run lint && npm run test
+```
+
+```bash
+docker compose up -d postgres
+```
+
+```powershell
+.\make.ps1 dev
+```
 
 > Nothing in this README is claimed to work until it has actually been run.
 > Benchmark numbers appear only after the benchmark has executed on real hardware.
