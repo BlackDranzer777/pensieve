@@ -59,9 +59,25 @@ class AnalyticsService:
             total_reviews=sum(summary.review_count for summary in summaries),
         )
 
+    def _resolve_brands(self, brands: Sequence[str] | None) -> list[uuid.UUID] | None:
+        """Turn requested brand names into ids, or None for "no filter".
+
+        The distinction matters: an unrecognised brand must return **nothing**,
+        not everything. Returning an empty list here would be falsy and the
+        callers' `if brand_ids:` guard would skip the filter entirely, quietly
+        showing every brand under a label naming one.
+        """
+        if not brands:
+            return None
+        resolved = self._repo.brand_ids_for(brands)
+        # `[NIL_UUID]` matches no row, which is the honest answer to a filter
+        # naming brands that do not exist.
+        return resolved if resolved else [uuid.UUID(int=0)]
+
     def sentiment_trends(
-        self, window: DateRange, brand_ids: Sequence[uuid.UUID] | None = None
+        self, window: DateRange, brands: Sequence[str] | None = None
     ) -> SentimentTrends:
+        brand_ids = self._resolve_brands(brands)
         grouped = self._repo.sentiment_series(window, brand_ids)
         series = [
             BrandSeries(
@@ -74,9 +90,9 @@ class AnalyticsService:
         return SentimentTrends(series=series, date_from=window.date_from, date_to=window.date_to)
 
     def topic_trends(
-        self, window: DateRange, brand_ids: Sequence[uuid.UUID] | None = None
+        self, window: DateRange, brands: Sequence[str] | None = None
     ) -> TopicTrends:
-        rows = self._repo.topic_series(window, brand_ids)
+        rows = self._repo.topic_series(window, self._resolve_brands(brands))
 
         by_topic: dict[str, list[TopicPoint]] = {}
         for row in rows:

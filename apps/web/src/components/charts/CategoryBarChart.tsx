@@ -3,7 +3,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -47,11 +46,15 @@ export function CategoryBarChart({
   const format = valueFormatter ?? ((value: number): string => String(value));
   const accent = token('accent');
 
+  // Per-bar colour is carried on the datum as `fill`, which Recharts reads
+  // directly. `<Cell>` is the traditional way and is deprecated in Recharts 3.
+  const chartData = data.map((datum) => ({ ...datum, fill: datum.color ?? accent }));
+
   return (
     <div className="text-ink-subtle" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={data}
+          data={chartData}
           layout={horizontal ? 'vertical' : 'horizontal'}
           margin={{ top: 4, right: 16, bottom: 0, left: horizontal ? 8 : -12 }}
         >
@@ -81,15 +84,11 @@ export function CategoryBarChart({
               fontSize: 12,
               color: token('ink'),
             }}
-            formatter={(value: number | string) =>
-              typeof value === 'number' ? format(value) : value
-            }
+            // See TimeSeriesChart: Recharts 3 types this value as
+            // `ValueType | undefined`, so the parameter type must be inferred.
+            formatter={(value) => (typeof value === 'number' ? format(value) : String(value ?? ''))}
           />
-          <Bar dataKey="value" radius={3} isAnimationActive={false}>
-            {data.map((datum) => (
-              <Cell key={datum.label} fill={datum.color ?? accent} />
-            ))}
-          </Bar>
+          <Bar dataKey="value" radius={3} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

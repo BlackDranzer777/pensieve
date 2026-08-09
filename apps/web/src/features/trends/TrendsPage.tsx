@@ -4,9 +4,14 @@ import { TimeSeriesChart, type SeriesSpec } from '@/components/charts/TimeSeries
 import { seriesColor, token } from '@/components/charts/chart-theme';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { ChipFilter, DateRangeFilter, SeverityBadge } from '@/components/ui/Controls';
+import {
+  ChipFilter,
+  DateRangeFilter,
+  SelectFilter,
+  SeverityBadge,
+} from '@/components/ui/Controls';
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/States';
-import { useAnomalies, useSentimentTrends, useTopicTrends } from '@/hooks/useAnalytics';
+import { useAnomalies, useBrands, useSentimentTrends, useTopicTrends } from '@/hooks/useAnalytics';
 import { formatCount, formatPercent } from '@/lib/utils';
 
 const SEVERITIES = ['low', 'medium', 'high', 'critical'] as const;
@@ -17,15 +22,27 @@ const TOPIC_LINE_LIMIT = 5;
 export function TrendsPage(): JSX.Element {
   const [range, setRange] = useState({ from: '', to: '' });
   const [severities, setSeverities] = useState<string[]>([]);
+  // Empty string means "all brands". Five overlapping lines is a legible
+  // chart only when you already know what you are looking for; picking one
+  // brand is what makes a trend readable.
+  const [brand, setBrand] = useState('');
 
   const window = { date_from: range.from || undefined, date_to: range.to || undefined };
-  const sentiment = useSentimentTrends(window);
-  const topics = useTopicTrends(window);
+  const brandFilter = brand ? [brand] : undefined;
+
+  const brands = useBrands(window);
+  const sentiment = useSentimentTrends({ ...window, brand: brandFilter });
+  const topics = useTopicTrends({ ...window, brand: brandFilter });
   const anomalies = useAnomalies({
     ...window,
     severity: severities.length > 0 ? severities : undefined,
     page_size: 50,
   });
+
+  const brandNames = useMemo(
+    () => (brands.data ?? []).map((summary) => summary.brand),
+    [brands.data],
+  );
 
   /** Pivot per-brand series into one row per date, one column per brand. */
   const sentimentRows = useMemo(() => {
@@ -92,8 +109,23 @@ export function TrendsPage(): JSX.Element {
       <Card>
         <CardHeader
           title="Negative sentiment over time"
-          description="Share of negative reviews per brand, per day"
-          actions={<DateRangeFilter from={range.from} to={range.to} onChange={setRange} />}
+          description={
+            brand
+              ? `${brand} — share of negative reviews per day`
+              : 'Share of negative reviews per brand, per day'
+          }
+          actions={
+            <>
+              <SelectFilter
+                label="Brand"
+                value={brand}
+                options={brandNames}
+                onChange={setBrand}
+                allLabel="All brands"
+              />
+              <DateRangeFilter from={range.from} to={range.to} onChange={setRange} />
+            </>
+          }
         />
         <CardBody>
           {sentiment.isError ? (
@@ -131,7 +163,11 @@ export function TrendsPage(): JSX.Element {
       <Card>
         <CardHeader
           title="Topic volume"
-          description={`The ${String(TOPIC_LINE_LIMIT)} largest topics by review count`}
+          description={
+            brand
+              ? `${brand} — the ${String(TOPIC_LINE_LIMIT)} largest topics by review count`
+              : `The ${String(TOPIC_LINE_LIMIT)} largest topics by review count`
+          }
           actions={
             topics.data?.fastest_growing != null ? (
               <Badge tone="caution">

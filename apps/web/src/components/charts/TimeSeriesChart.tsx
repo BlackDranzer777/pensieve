@@ -74,9 +74,10 @@ export function TimeSeriesChart({
               color: token('ink'),
             }}
             labelStyle={{ color: token('ink-muted'), fontSize: 11 }}
-            formatter={(value: number | string) =>
-              typeof value === 'number' ? format(value) : value
-            }
+            // The parameter type is left to inference. Recharts 3 types the
+            // tooltip value as `ValueType | undefined`, so annotating it as
+            // `number | string` makes the callback unassignable.
+            formatter={(value) => (typeof value === 'number' ? format(value) : String(value ?? ''))}
           />
           {series.map((spec, index) => (
             <Line

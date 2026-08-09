@@ -36,9 +36,10 @@ describe('application shell', () => {
 
     await user.click(screen.getByRole('link', { name: /review explorer/i }));
 
-    expect(
-      await screen.findByText(/CSV export of the currently filtered result set/i),
-    ).toBeInTheDocument();
+    // Asserts the real page's own heading. This used to look for the
+    // PhasePlaceholder copy, which stopped existing once the page was built —
+    // the test was checking that the page was *not* implemented.
+    expect(await screen.findByRole('heading', { name: /^filters$/i })).toBeInTheDocument();
   });
 
   it('redirects an unknown route to the overview', async () => {
@@ -100,14 +101,23 @@ describe('platform status card', () => {
     const user = userEvent.setup();
     renderWithProviders(<App />);
 
-    const alert = await screen.findByRole('alert');
+    // The overview page now fetches `/overview` as well as `/health`, and the
+    // mock answers every request with the health payload — so a second alert
+    // appears for the overview's schema mismatch. Scope to the status card
+    // rather than the whole document, since that is what this test is about.
+    const card = (await screen.findByRole('heading', { name: /platform status/i })).closest(
+      'section',
+    );
+    expect(card).not.toBeNull();
+
+    const alert = await within(card as HTMLElement).findByRole('alert');
     const callsBefore = failing.mock.calls.length;
 
     mockFetchJson(healthFixture());
     await user.click(within(alert).getByRole('button', { name: /try again/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(within(card as HTMLElement).queryByRole('alert')).not.toBeInTheDocument();
     });
     expect(callsBefore).toBeGreaterThan(0);
   });

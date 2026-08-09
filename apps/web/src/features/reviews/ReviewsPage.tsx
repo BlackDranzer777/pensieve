@@ -98,7 +98,7 @@ export function ReviewsPage(): JSX.Element {
             activeFilterCount > 0 ? (
               <button
                 type="button"
-                onClick={() => setParams(new URLSearchParams(), { replace: true })}
+                onClick={() => { setParams(new URLSearchParams(), { replace: true }); }}
                 className="text-2xs font-medium text-accent hover:underline"
               >
                 Clear {activeFilterCount} filters
@@ -111,10 +111,10 @@ export function ReviewsPage(): JSX.Element {
             <SearchInput
               value={filters.q ?? ''}
               onChange={(value) =>
-                update((next) => {
+                { update((next) => {
                   if (value) next.set('q', value);
                   else next.delete('q');
-                })
+                }); }
               }
               placeholder="Search review text or product (3+ characters)…"
               className="min-w-64 flex-1"
@@ -123,12 +123,12 @@ export function ReviewsPage(): JSX.Element {
               from={filters.date_from ?? ''}
               to={filters.date_to ?? ''}
               onChange={({ from, to }) =>
-                update((next) => {
+                { update((next) => {
                   if (from) next.set('date_from', from);
                   else next.delete('date_from');
                   if (to) next.set('date_to', to);
                   else next.delete('date_to');
-                })
+                }); }
               }
             />
             <label className="flex items-center gap-1.5 text-2xs text-ink-muted">
@@ -136,10 +136,10 @@ export function ReviewsPage(): JSX.Element {
                 type="checkbox"
                 checked={filters.include_duplicates === true}
                 onChange={(event) =>
-                  update((next) => {
+                  { update((next) => {
                     if (event.target.checked) next.set('include_duplicates', 'true');
                     else next.delete('include_duplicates');
-                  })
+                  }); }
                 }
               />
               Include duplicates
@@ -156,25 +156,25 @@ export function ReviewsPage(): JSX.Element {
                 label="Brand"
                 options={facets.data.brands}
                 selected={filters.brand ?? []}
-                onToggle={(value) => toggle('brand', value)}
+                onToggle={(value) => { toggle('brand', value); }}
               />
               <ChipFilter
                 label="Sentiment"
                 options={facets.data.sentiments}
                 selected={filters.sentiment ?? []}
-                onToggle={(value) => toggle('sentiment', value)}
+                onToggle={(value) => { toggle('sentiment', value); }}
               />
               <ChipFilter
                 label="Language"
                 options={facets.data.languages}
                 selected={filters.language ?? []}
-                onToggle={(value) => toggle('language', value)}
+                onToggle={(value) => { toggle('language', value); }}
               />
               <ChipFilter
                 label="Country"
                 options={facets.data.countries}
                 selected={filters.country ?? []}
-                onToggle={(value) => toggle('country', value)}
+                onToggle={(value) => { toggle('country', value); }}
               />
             </div>
           )}
@@ -216,7 +216,7 @@ export function ReviewsPage(): JSX.Element {
                     {reviews.data.items.map((review) => (
                       <tr
                         key={review.id}
-                        onClick={() => setSelectedId(review.id)}
+                        onClick={() => { setSelectedId(review.id); }}
                         className="cursor-pointer hover:bg-ink/[0.03]"
                       >
                         <td className="max-w-md px-5 py-2.5">
@@ -251,9 +251,9 @@ export function ReviewsPage(): JSX.Element {
                 totalPages={reviews.data.meta.total_pages}
                 totalItems={reviews.data.meta.total_items}
                 onPageChange={(page) =>
-                  update((next) => {
+                  { update((next) => {
                     next.set('page', String(page));
-                  }, false)
+                  }, false); }
                 }
               />
             </>
@@ -269,7 +269,7 @@ export function ReviewsPage(): JSX.Element {
             actions={
               <button
                 type="button"
-                onClick={() => setSelectedId(null)}
+                onClick={() => { setSelectedId(null); }}
                 className="text-2xs font-medium text-ink-muted hover:underline"
               >
                 Close

@@ -40,7 +40,7 @@ export function DateRangeFilter({
         // but an input that cannot express the mistake beats an error message.
         max={to || undefined}
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
-          onChange({ from: event.target.value, to })
+          { onChange({ from: event.target.value, to }); }
         }
         className={fieldClasses}
       />
@@ -54,14 +54,14 @@ export function DateRangeFilter({
         value={to}
         min={from || undefined}
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
-          onChange({ from, to: event.target.value })
+          { onChange({ from, to: event.target.value }); }
         }
         className={fieldClasses}
       />
       {from || to ? (
         <button
           type="button"
-          onClick={() => onChange({ from: '', to: '' })}
+          onClick={() => { onChange({ from: '', to: '' }); }}
           className="rounded-md px-1.5 py-1 text-2xs text-ink-muted hover:bg-ink/5"
         >
           Clear
@@ -94,7 +94,7 @@ export function SelectFilter({
       {label}
       <select
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => { onChange(event.target.value); }}
         className={fieldClasses}
       >
         <option value="">{allLabel}</option>
@@ -144,7 +144,7 @@ export function ChipFilter({
               key={option}
               type="button"
               aria-pressed={active}
-              onClick={() => onToggle(option)}
+              onClick={() => { onToggle(option); }}
               className={cn(
                 'rounded-full px-2 py-0.5 text-2xs ring-1 ring-inset transition-colors',
                 active
@@ -183,7 +183,7 @@ export function SearchInput({
         id="review-search"
         type="search"
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => { onChange(event.target.value); }}
         placeholder={placeholder}
         className={cn(fieldClasses, 'w-full py-1.5')}
       />
@@ -221,7 +221,7 @@ export function PaginationBar({
           type="button"
           className={buttonClasses}
           disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
+          onClick={() => { onPageChange(page - 1); }}
         >
           Previous
         </button>
@@ -229,7 +229,7 @@ export function PaginationBar({
           type="button"
           className={buttonClasses}
           disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
+          onClick={() => { onPageChange(page + 1); }}
         >
           Next
         </button>

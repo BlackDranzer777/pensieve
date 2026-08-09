@@ -97,6 +97,18 @@ class AnalyticsRepository:
 
     # -- trends ------------------------------------------------------------
 
+    def brand_ids_for(self, names: Sequence[str]) -> list[uuid.UUID]:
+        """Resolve brand names to ids.
+
+        The API filters by name because that is what a client has — a uuid is
+        an internal detail nobody types into a URL. Resolving here keeps the
+        trend queries filtering on the indexed foreign key rather than joining
+        to `brands` and matching strings.
+        """
+        if not names:
+            return []
+        return list(self._session.scalars(select(Brand.id).where(Brand.name.in_(names))))
+
     def sentiment_series(
         self, window: DateRange, brand_ids: Sequence[uuid.UUID] | None = None
     ) -> dict[tuple[uuid.UUID, str], list[SentimentTrend]]:

@@ -73,8 +73,15 @@ def list_languages(service: ServiceDep, window: DateRangeDep) -> list[LanguagePo
     response_model=SentimentTrends,
     summary="Sentiment over time, per brand, with trailing baselines",
 )
-def sentiment_trends(service: ServiceDep, window: DateRangeDep) -> SentimentTrends:
-    return service.sentiment_trends(window)
+def sentiment_trends(
+    service: ServiceDep,
+    window: DateRangeDep,
+    brand: Annotated[
+        list[str] | None,
+        Query(description="Limit to these brands by name; repeatable. Omit for all."),
+    ] = None,
+) -> SentimentTrends:
+    return service.sentiment_trends(window, brand)
 
 
 @router.get(
@@ -82,8 +89,15 @@ def sentiment_trends(service: ServiceDep, window: DateRangeDep) -> SentimentTren
     response_model=TopicTrends,
     summary="Topic volume over time, with the fastest-growing topic",
 )
-def topic_trends(service: ServiceDep, window: DateRangeDep) -> TopicTrends:
-    return service.topic_trends(window)
+def topic_trends(
+    service: ServiceDep,
+    window: DateRangeDep,
+    brand: Annotated[
+        list[str] | None,
+        Query(description="Limit to these brands by name; repeatable. Omit for all."),
+    ] = None,
+) -> TopicTrends:
+    return service.topic_trends(window, brand)
 
 
 @router.get(

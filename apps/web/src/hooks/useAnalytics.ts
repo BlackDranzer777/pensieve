@@ -99,24 +99,33 @@ export function useLanguages(window: DateWindow = {}): UseQueryResult<LanguagePo
   });
 }
 
-export function useSentimentTrends(window: DateWindow = {}): UseQueryResult<SentimentTrends> {
+/** A date window plus an optional brand filter. Omitting `brand` means all. */
+export interface TrendQuery extends DateWindow {
+  brand?: string[];
+}
+
+function trendParams(query: TrendQuery): QueryParams {
+  return { ...windowParams(query), brand: query.brand };
+}
+
+export function useSentimentTrends(query: TrendQuery = {}): UseQueryResult<SentimentTrends> {
   return useQuery({
-    queryKey: ['trends', 'sentiment', window],
+    queryKey: ['trends', 'sentiment', query],
     queryFn: ({ signal }) =>
       apiFetch('/trends/sentiment', sentimentTrendsSchema, {
-        params: windowParams(window),
+        params: trendParams(query),
         signal,
       }),
     staleTime: AGGREGATE_STALE_MS,
   });
 }
 
-export function useTopicTrends(window: DateWindow = {}): UseQueryResult<TopicTrends> {
+export function useTopicTrends(query: TrendQuery = {}): UseQueryResult<TopicTrends> {
   return useQuery({
-    queryKey: ['trends', 'topics', window],
+    queryKey: ['trends', 'topics', query],
     queryFn: ({ signal }) =>
       apiFetch('/trends/topics', topicTrendsSchema, {
-        params: windowParams(window),
+        params: trendParams(query),
         signal,
       }),
     staleTime: AGGREGATE_STALE_MS,

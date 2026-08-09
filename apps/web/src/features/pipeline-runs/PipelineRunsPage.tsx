@@ -59,7 +59,7 @@ export function PipelineRunsPage(): JSX.Element {
                   {runs.data.items.map((run) => (
                     <tr
                       key={run.id}
-                      onClick={() => setSelectedId(run.id)}
+                      onClick={() => { setSelectedId(run.id); }}
                       className="cursor-pointer hover:bg-ink/[0.03]"
                     >
                       <td className="px-5 py-2.5 text-ink">
@@ -105,7 +105,7 @@ export function PipelineRunsPage(): JSX.Element {
             actions={
               <button
                 type="button"
-                onClick={() => setSelectedId(null)}
+                onClick={() => { setSelectedId(null); }}
                 className="text-2xs font-medium text-ink-muted hover:underline"
               >
                 Close
