@@ -17,6 +17,7 @@ shown are the real outputs from this machine.
 | Document | What it covers |
 |---|---|
 | [architecture.md](architecture.md) | **What every script does to the data**, stage by stage, with diagrams and measured numbers. The map of the whole pipeline. |
+| [reading-the-trend-chart.md](reading-the-trend-chart.md) | Why the sentiment chart looks volatile when the data is flat, and how to read it without inventing incidents. |
 
 ### Docker
 
