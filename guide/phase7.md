@@ -1,15 +1,12 @@
 # Phase 7 — The React Dashboard
 
-**Status: written, not verified.** Every claim below describes what the code is
-*intended* to do. None of it has been compiled, linted, tested or opened in a
-browser — the machine it was written on did not have the memory free to run the
-stack, and inventing a "works" claim would break the rule this whole project is
-built on.
+**Status: complete and verified.** Compiled, linted, unit-tested and loaded
+in a browser against a database holding 37,800 transformer-scored reviews.
 
-Verify it yourself:
-
-```bash
-cd apps/web && npm run typecheck && npm run lint && npm run test
+```
+tsc -b --noEmit          clean
+eslint --max-warnings 0  clean
+vitest                   17 passed
 ```
 
 ---
@@ -144,11 +141,18 @@ between page 1 and page 2 — one row shown twice, another never shown at all.
 
 ## Known gaps
 
-- **Nothing has been run.** Expect compile errors; this is unverified code.
-- Recharts 3 tooltip and formatter typings are the most likely source of them.
 - No CSV export on the Review Explorer yet (listed in the plan, not built).
-- No brand filter on the Trends page — the API supports it, the UI does not
-  expose it.
+- The Overview's `total_reviews` reports the non-duplicate count, understating
+  the dataset by the number of duplicates. Fix pending.
+
+**The two predicted failures both happened**, which is the argument for running
+things rather than reasoning about them:
+
+- Recharts 3 types the tooltip value as `ValueType | undefined`, so annotating
+  the formatter parameter as `number | string` made the callback unassignable.
+  The parameter type is now inferred.
+- `<Cell>` is deprecated in Recharts 3. Per-bar colour now rides on the datum
+  as `fill`, which Recharts reads directly.
 
 ---
 
@@ -157,6 +161,6 @@ between page 1 and page 2 — one row shown twice, another never shown at all.
 ```
 Phase 5   Silver   -> Gold          aggregation and anomalies
 Phase 6   Gold     -> PostgreSQL    18 endpoints, 434 tests green
-Phase 7   API      -> dashboard     six pages   <- you are here (unverified)
+Phase 7   API      -> dashboard     six pages, verified   <- you are here
 Phase 8   tests, CI, benchmark, docs
 ```
